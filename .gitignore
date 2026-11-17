@@ -1,0 +1,24 @@
+# Segredos e configuração local
+.env
+*.pem
+certs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Terraform (fases 3 e 7)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
