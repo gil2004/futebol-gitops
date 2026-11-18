@@ -11,6 +11,8 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 *.egg-info/
+.coverage
+htmlcov/
 
 # Terraform (fases 3 e 7)
 .terraform/
