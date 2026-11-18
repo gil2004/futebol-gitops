@@ -1,0 +1,19 @@
+# Ambientes e caches locais (a imagem cria o seu próprio .venv)
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Segredos: nunca entram na imagem
+.env
+.env.*
+
+# Não são precisos para correr a app
+tests/
+Dockerfile
+.dockerignore
