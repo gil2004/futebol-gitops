@@ -42,6 +42,12 @@ ENV PYTHONUNBUFFERED=1 \
 RUN groupadd --system --gid 10001 app \
  && useradd --system --uid 10001 --gid app --no-create-home app
 
+# Atualizações de segurança do Debian (a imagem base pode estar atrasada
+# em relação às correções publicadas). Corre como root, antes do USER.
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Só o .venv vem do builder (fica do root: a app não o pode alterar)
