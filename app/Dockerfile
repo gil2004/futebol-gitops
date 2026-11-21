@@ -3,7 +3,7 @@
 # =========================================================
 # Estágio 1: builder (instala dependências com o uv)
 # =========================================================
-FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b AS builder
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS builder
 
 # Copia o binário do uv da imagem oficial (versão fixa = build reproduzível)
 COPY --from=ghcr.io/astral-sh/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d /uv /bin/uv
@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # =========================================================
 # Estágio 2: runtime (só o necessário para correr)
 # =========================================================
-FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b AS runtime
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS runtime
 
 # PYTHONUNBUFFERED: logs aparecem logo no "docker logs" (sem buffer)
 # PATH: o uvicorn e o python do .venv passam a ser os predefinidos
