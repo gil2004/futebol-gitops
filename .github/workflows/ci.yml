@@ -92,3 +92,53 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
+
+
+  smoke:
+    name: Smoke test (compose)
+    needs: qualidade
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Obter o código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar .env de teste
+        run: |
+          cp .env.example .env
+          sed -i 's/^FOOTBALL_DATA_TOKEN=.*/FOOTBALL_DATA_TOKEN=ci-falso/' .env
+          sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-falso/' .env
+
+      - name: Gerar certificado autoassinado
+        run: |
+          mkdir -p nginx/certs
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -subj "/CN=localhost" \
+            -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
+            -keyout nginx/certs/localhost-key.pem \
+            -out nginx/certs/localhost.pem
+          chmod 644 nginx/certs/localhost-key.pem
+
+      - name: Arrancar a stack
+        run: docker compose up -d --build --wait --wait-timeout 120
+
+      - name: HTTPS responde no /healthz
+        run: |
+          curl --fail --silent --show-error \
+            --cacert nginx/certs/localhost.pem \
+            https://localhost/healthz
+
+      - name: HTTP redireciona para HTTPS
+        run: |
+          curl --silent --head http://localhost | grep -q "301"
+
+      - name: Logs (só se algo falhou)
+        if: failure()
+        run: docker compose logs
+
+      - name: Desligar a stack
+        if: always()
+        run: docker compose down -v
