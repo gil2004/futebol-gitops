@@ -2,7 +2,7 @@ name: futebol
 
 services:
   db:
-    image: postgres:17
+    image: postgres:17@sha256:b60e90042aa6b8dbecd58e224b3e36114dbf8ad754465264c2476ad58a86e45c
     environment:
       POSTGRES_DB: futebol
       POSTGRES_USER: futebol
@@ -34,7 +34,7 @@ services:
 
 
   nginx:
-    image: nginxinc/nginx-unprivileged:stable-alpine
+    image: nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03
     ports:
       - "80:8080"
       - "443:8443"
