@@ -12,6 +12,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  IMAGEM: ghcr.io/${{ github.repository }}
+
 jobs:
   qualidade:
     name: Qualidade e testes
@@ -58,7 +61,6 @@ jobs:
       - name: Pytest
         run: uv run pytest
 
-
   imagem:
     name: Build e scan da imagem
     needs: qualidade
@@ -81,6 +83,9 @@ jobs:
           load: true
           push: false
           tags: futebol:ci
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -93,18 +98,38 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
+      - name: Exportar imagem
+        run: docker save futebol:ci | gzip > imagem.tar.gz
+
+      - name: Guardar imagem como artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: imagem
+          path: imagem.tar.gz
+          retention-days: 1
+          if-no-files-found: error
 
   smoke:
     name: Smoke test (compose)
-    needs: qualidade
+    needs: imagem
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      WEB_IMAGE: futebol:ci
 
     steps:
       - name: Obter o código
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Obter a imagem testada
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: imagem
+
+      - name: Carregar a imagem
+        run: docker load < imagem.tar.gz
 
       - name: Preparar .env de teste
         run: |
@@ -122,8 +147,8 @@ jobs:
             -out nginx/certs/localhost.pem
           chmod 644 nginx/certs/localhost-key.pem
 
-      - name: Arrancar a stack
-        run: docker compose up -d --build --wait --wait-timeout 120
+      - name: Arrancar a stack (sem build)
+        run: docker compose up -d --no-build --wait --wait-timeout 120
 
       - name: HTTPS responde no /healthz
         run: |
@@ -142,3 +167,37 @@ jobs:
       - name: Desligar a stack
         if: always()
         run: docker compose down -v
+
+  publicar:
+    name: Publicar no GHCR
+    needs: [imagem, smoke]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Obter a imagem testada
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: imagem
+
+      - name: Carregar a imagem
+        run: docker load < imagem.tar.gz
+
+      - name: Login no GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Etiquetar e publicar
+        run: |
+          SHA_CURTO="${GITHUB_SHA::7}"
+          docker tag futebol:ci "$IMAGEM:sha-$SHA_CURTO"
+          docker tag futebol:ci "$IMAGEM:main"
+          docker push "$IMAGEM:sha-$SHA_CURTO"
+          docker push "$IMAGEM:main"

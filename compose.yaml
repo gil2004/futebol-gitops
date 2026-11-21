@@ -18,7 +18,7 @@ services:
 
   web:
     build: ./app
-    image: futebol:dev
+    image: ${WEB_IMAGE:-futebol:dev}
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://futebol:${POSTGRES_PASSWORD}@db:5432/futebol
